@@ -1,0 +1,27 @@
+sload pi
+sload basic-lex
+
+fmod listaParametros is
+     inc QID .
+     inc RAT .
+     inc FLOAT .
+     inc STRING .
+     inc BOOL .
+     sorts Expr Idn Val .
+     sorts List .
+     subsort Idn Val < Expr < List  .
+     op idn : Qid -> Idn .
+     op nil : -> List [ctor] .
+     op _;_ : List List -> List [ctor assoc id: nil] .
+     op car₁ : List -> Idn .
+     op car₂ : List -> Expr .
+     op cdr : List -> List .
+     var Tail : List .
+     var HeadId : Idn .
+     var HeadExp : Expr .
+     eq car₁(HeadId \ Tail ) = HeadId .
+     eq car₂(HeadExp \ Tail  ) = HeadExp .
+     eq cdr(HeadExp \ Tail) = Tail .
+     eq cdr(HeadId \ Tail) = Tail .
+ endfm
+

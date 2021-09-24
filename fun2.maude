@@ -1,20 +1,20 @@
 sload pi
 sload basic-lex
+sload multiplos-parametros
 
-fmod FUN-LEX is 
+fmod FUN-LEX is
      inc LEXICAL .
      inc BASIC-LEX .
-
-     eq keywords = ('fun '`( '`) '= '`, '~ '+ '- '* '/ '>= '> '<= '< '== 'or 'and 'if 'then 'else) .
+     eq keywords = ('fun '`( '`) '= '`, '~ '+ '- '* '/ '>= '> '<= '< '== 'or 'and 'if 'then 'else '\) .
      eq ignore = nil .
 
      var Q : Qid .
      eq $lexQid(Q) =
-        if ignore?(Q) then nil  
+        if ignore?(Q) then nil
         else if isRat(Q) then mkRat(Q)
         else if isString(Q) then mkString(Q)
         else if isFloat(Q) then mkFloat(Q)
-        else mkIdn(Q) 
+        else mkIdn(Q)
         fi fi fi fi .
 
      op mkRat : Qid -> Qid .
@@ -30,28 +30,30 @@ fmod FUN-LEX is
      eq mkIdn(Q) = tokenize("idn('" + printTokens(Q) + ")") .
 endfm
 
+
 fmod FUN-GRM is
      inc QID .
      inc RAT .
      inc FLOAT .
      inc STRING .
      inc BOOL .
-     sorts Expr Idn Val .
-     subsort Idn Val < Expr .  
+     inc listaParametros .
+     subsort Idn Val < Expr < List  .
      op idn : Qid -> Idn .
      op rat : Rat -> Val .
      op flo : Float -> Val .
-     op str : String -> Val . 
+     op str : String -> Val .
      op boo : Bool -> Val .
      ops _+_ _*_ _-_ _/_ _==_ _<_ _<=_ _>_ _>=_ _or_ _and_ : Expr Expr -> Expr [gather(E e) prec 20] .
      op ~_ : Expr -> Expr .
      op if_then_else_ : Expr Expr Expr -> Expr [prec 40] .
-     op fun_(_) =_ : Idn Idn Expr -> Expr [prec 50] .
-     op _(_) : Idn Expr -> Expr [prec 10] . 
+     op fun_(_) =_ : Idn  List  Expr -> Expr [prec 50] .
+     op _(_) : Idn List -> Expr [prec 10] .
      op _,_ : Expr Expr -> Expr [prec 60 assoc] .
- endfm 
+ endfm
 
-fmod FUN-PARSER is 
+
+fmod FUN-PARSER is
      inc FUN-LEX .
      inc FUN-GRM .
      inc META-LEVEL * (op id to ml-id) .
@@ -60,8 +62,8 @@ fmod FUN-PARSER is
      op $errorExpr : ~> Expr .
      var S : String .
      eq parse(S) = downTerm(getTerm(
-                    metaParse(upModule('FUN-GRM, false), lex(S), 'Expr)), $errorExpr) . 
-     eq parseToTerm(S) = metaParse(upModule('FUN-GRM, false), lex(S), 'Expr) . 
+                    metaParse(upModule('FUN-GRM, false), lex(S), 'Expr)), $errorExpr) .
+     eq parseToTerm(S) = metaParse(upModule('FUN-GRM, false), lex(S), 'Expr) .
 endfm
 
 fmod FUN-TRAN2 is
@@ -69,7 +71,9 @@ fmod FUN-TRAN2 is
      inc BASIC-VALUES .
      inc ID-IR .
      inc REC-IR .
-
+     inc FORMALS .
+     inc ACTUALS .
+     inc listaParametros .
      op compileIdn : Idn -> Id .
      var Q : Qid .
      eq compileIdn(idn(Q)) = id(Q) .
@@ -78,7 +82,8 @@ fmod FUN-TRAN2 is
 
      var R : Rat . var F : Float . var S : String . var B : Bool .
      vars E E1 E2 E3 : Expr .
-     var I I1 I2 : Idn . 
+     var I I1 I2 I3 : Idn .
+     var parametros : List .
 
      eq compileExpr(rat(R)) = exp(val(R)) .
      eq compileExpr(flo(F)) = exp(val(F)) .
@@ -99,29 +104,37 @@ fmod FUN-TRAN2 is
      eq compileExpr(E1 and E2) = lan(compileExpr(E1), compileExpr(E2)) .
      eq compileExpr(~ E) = not(compileExpr(E)) .
 
-     eq compileExpr(if E1 then E2 else E3) = 
+     eq compileExpr(if E1 then E2 else E3) =
         ite(compileExpr(E1), compileExpr(E2), compileExpr(E3)) .
-
-     eq compileExpr(fun I1 (I2) = E) = compileDec(fun I1 (I2) = E) .
-
-     eq compileExpr(I(E)) = recapp(compileIdn(I), compileExpr(E)) .
-
-     eq compileExpr((fun I1 (I2) = E1, E2)) = 
-        let(compileDec(fun I1 (I2) = E1), compileExpr(E2)) .
+     eq compileExpr(fun I1 (parametros) = E) = compileDec(fun I1 (parametros) = E) .
+     eq compileExpr(I(parametros)) = recapp(compileIdn(I), ẞ₂(parametros)) .
+     eq compileExpr((fun I1 (parametros) = E1, E2)) =
+        let(compileDec(fun I1 (parametros) = E1), compileExpr(E2)) .
 
      op compileDec : Expr -> Dec .
-     eq compileDec(fun I1 (I2) = E) = 
-        rec(compileIdn(I1), lambda(compileIdn(I2), compileExpr(E))) . 
+     eq compileDec(fun I1 (parametros) = E) =
+        rec(compileIdn(I1), lambda(ẞ₁(parametros) , compileExpr(E))) .
+
+     op ẞ₁ : List ->  Formals .
+     eq ẞ₁(parametros) = if cdr(parametros) == nil then compileIdn(car₁(parametros))
+                                                 else  compileIdn(car₁(parametros)) ẞ₁(cdr(parametros))
+                           fi .
+     op ẞ₂ : List -> Actuals .
+     eq ẞ₂(parametros) =  if cdr(parametros) == nil then compileExpr(car₂(parametros))
+                                                       else  ẞ₂(cdr(parametros)) compileExpr(car₂(parametros))
+                             fi .
+
+
 endfm
 
-fmod FUN-RUN-TIME is 
+fmod FUN-RUN-TIME is
      inc FUN-LEX .
-     inc FUN-PARSER . 
-     inc FUN-TRAN2 . 
+     inc FUN-PARSER .
+     inc FUN-TRAN2 .
      inc REC-ABS-AUTOMATON .
      inc CONVERSION .
      inc NAT .
-     
+
      op exec : Exp -> State .
      op fexe : Exp Nat -> State .
      op comp : Expr -> Exp .
@@ -130,13 +143,13 @@ fmod FUN-RUN-TIME is
      op initCtx : -> PreState .
 
      op getRat : Value -> Rat .
-     var E : Expr . var Epi : Exp . var V : Stack{Value} . var ... : PreState . 
+     var E : Expr . var Epi : Exp . var V : Stack{Value} . var ... : PreState .
      var R : Rat . var S : String . var F : Float . var N : Nat .
 
      eq comp(E) = compileExpr(E) .
      eq initCtx = val : (∅).Stack{Value}, env : (∅).Env .
 
-     eq exec(Epi) = 
+     eq exec(Epi) =
         δ*( [cnt : [cnt(Epi)], initCtx] ) .
 
      eq out([val : V, ...]) = top(V) .
