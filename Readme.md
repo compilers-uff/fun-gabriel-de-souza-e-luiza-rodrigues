@@ -21,8 +21,8 @@ de uma função com um número indefinido de parâmetros e sua chamada.
 
 ##Relatorio    
 ## Relatorio    
-   Escolhemos como separador de parâmetros o operador ```\```   
+   Escolhemos como separador de parâmetros o operador ```@```   
    Para essa etapa foram modificados a parte de operadores ```(Keywords)``` no arquivo ```fun2.maude```  para dar espaço ao nosso operador
-   ```eq keywords = ('fun '`( '`) '= '`, '~ '+ '- '* '/ '>= '> '<= '< '== 'or 'and 'if 'then 'else '\) . ```
+   ```eq keywords = ('fun '`( '`) '= '`, '~ '+ '- '* '/ '>= '> '<= '< '== 'or 'and 'if 'then 'else '@) . ```
    Para concluir a alteração no ```fun2``` terminamos com as demais alterações para permitir que o compilador aceite os parâmetros em suas devidas colocações.
    
